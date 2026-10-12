@@ -1,0 +1,885 @@
+<title>Ninety-Two Layers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a specimen plate. Slim title band, then a three-column instrument (controls | specimen | readings), then a single commentary column. Light = Cajal ink plate, dark = fluorescence microscopy. */
+:root{
+  --bg:#e8e4da; --plate:#f1ede4; --panel:#f5f2ea; --ink:#211c17; --muted:#6a6157; --rule:#cfc7b7;
+  --signal:#a8261b; --assoc:#1d4c86; --shared:#6d3a86; --tissue:#3a3129;
+  --is-dark:0;
+  --f-display:"Bodoni Moda", Didot, "Bodoni 72", Georgia, serif;
+  --f-body:"Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --s-1:.75rem; --s0:.875rem; --s1:1rem; --s2:1.25rem; --s3:1.75rem; --s4:2.6rem; --s5:clamp(2.4rem,5vw,3.8rem);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#070910; --plate:#03050a; --panel:#0b0f1a; --ink:#dfe5f0; --muted:#8a94a9; --rule:#1d2436;
+    --signal:#ffb257; --assoc:#7cd2ff; --shared:#ff79b6; --tissue:#36598f;
+    --is-dark:1; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#070910; --plate:#03050a; --panel:#0b0f1a; --ink:#dfe5f0; --muted:#8a94a9; --rule:#1d2436;
+  --signal:#ffb257; --assoc:#7cd2ff; --shared:#ff79b6; --tissue:#36598f;
+  --is-dark:1; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+a{color:var(--assoc)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--assoc);outline-offset:2px}
+
+.band{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:22px 14px;padding-inline:16px;border-bottom:1px solid var(--rule)}
+.band h1{font-family:var(--f-display);font-weight:500;font-size:var(--s5);line-height:.95;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.band h1 em{font-style:italic;font-weight:400}
+.band .sub{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.band .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tag{font-family:var(--f-data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--rule);padding:4px 8px;border-radius:2px}
+.btn{cursor:pointer;background:transparent;border:1px solid var(--rule);padding:7px 12px;border-radius:2px;font-size:13px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--plate);border-color:var(--ink);font-weight:600}
+.btn.primary:hover{opacity:.9}
+.btn[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+
+.instrument{display:grid;grid-template-columns:300px minmax(0,1fr) 320px;height:clamp(600px,84vh,940px);border-bottom:1px solid var(--rule)}
+.col{min-width:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:18px;background:var(--panel)}
+.col.left{border-right:1px solid var(--rule)}
+.col.right{border-left:1px solid var(--rule)}
+.label{font-family:var(--f-data);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.presets{display:flex;flex-direction:column;gap:6px}
+.preset{text-align:left;cursor:pointer;background:transparent;border:1px solid var(--rule);border-radius:2px;padding:8px 10px;font-size:13px;line-height:1.35}
+.preset:hover{border-color:var(--ink)}
+.preset[aria-current="true"]{border-color:var(--signal);box-shadow:inset 3px 0 0 var(--signal)}
+textarea{width:100%;min-height:64px;resize:vertical;background:var(--plate);border:1px solid var(--rule);border-radius:2px;padding:8px 10px;font-size:13.5px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row label{font-size:12.5px;color:var(--muted)}
+input[type=range]{accent-color:var(--signal);width:110px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{cursor:pointer;font-family:var(--f-data);font-size:11.5px;border:1px solid var(--rule);background:var(--plate);padding:3px 6px 2px;border-radius:2px;display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.chip small{font-size:9px;color:var(--muted)}
+.chip .sp{color:var(--muted);opacity:.7}
+.chip[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+.chip.gen{border-style:dashed}
+canvas.mini{width:100%;max-width:100%;display:block;background:var(--plate);border:1px solid var(--rule);border-radius:2px}
+.note{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+.stage{position:relative;min-width:0;display:flex;flex-direction:column;background:var(--plate)}
+.gl-wrap{position:relative;flex:1;min-height:0;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:pan-y}
+#gl:active{cursor:grabbing}
+.views{position:absolute;top:12px;right:12px;z-index:2;display:flex;gap:0}
+.views .btn{background:var(--panel);font-family:var(--f-data);font-size:11.5px;letter-spacing:.04em;padding:6px 10px;border-radius:0}
+.views .btn+.btn{border-left:0}
+.views .btn[aria-pressed="true"]{background:var(--ink);color:var(--plate);border-color:var(--ink)}
+#sheet{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;cursor:pointer}
+.gl-wrap.sheet-mode .flag{display:none}
+@media (max-width:520px){.views{top:auto;bottom:10px;right:10px}}
+.ctl{position:absolute;top:12px;left:12px;z-index:2;display:flex;gap:6px}
+.ctl .btn{background:var(--panel);font-family:var(--f-data);font-size:11.5px;letter-spacing:.04em;padding:6px 10px}
+.ctl .btn:disabled{opacity:.4;cursor:default}
+.flag{position:absolute;pointer-events:none;font-family:var(--f-data);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;transform:translate(-50%,-50%)}
+.flag.cursor{color:var(--signal);transform:translate(12px,-50%)}
+.flag.cursor::before{content:"";display:inline-block;width:18px;height:1px;background:var(--signal);vertical-align:middle;margin-right:6px}
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--rule);background:var(--panel)}
+.step{padding:8px 10px;font-size:12px;border-right:1px solid var(--rule);color:var(--muted);position:relative}
+.step:last-child{border-right:0}
+.step b{display:block;font-family:var(--f-data);font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.step.on{color:var(--ink)}
+.step.on b{color:var(--signal)}
+.step .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--signal);width:0}
+.out{border-top:1px solid var(--rule);background:var(--panel);padding:12px 16px;display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:16px;min-height:118px}
+.resp{font-family:var(--f-display);font-size:19px;line-height:1.4;white-space:pre-wrap;min-width:0;max-height:150px;overflow:auto}
+.resp .latest{color:var(--signal)}
+.resp .sw{display:inline-block;width:.75em;height:.75em;margin-left:.3em;vertical-align:-.02em;border:1px solid var(--rule);border-radius:2px}
+.resp .mask{display:inline-block;width:.8em;height:.85em;background:var(--ink);opacity:.18;margin:0 .12em;vertical-align:-.05em;border-radius:1px}
+.resp .mask.latest{background:var(--signal);opacity:.8}
+.cands{display:flex;flex-direction:column;gap:4px;font-family:var(--f-data);font-size:11.5px}
+.cand{display:grid;grid-template-columns:78px 1fr 40px;gap:6px;align-items:center}
+.cand span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cand i{display:block;height:6px;background:var(--rule);position:relative}
+.cand i::after{content:"";position:absolute;inset:0;width:var(--p);background:var(--muted)}
+.cand.win i::after{background:var(--signal)}
+.cand.win{color:var(--signal)}
+.cand em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.readout div{background:var(--panel);padding:8px 10px;min-width:0}
+.readout dt{font-family:var(--f-data);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.readout dd{margin:2px 0 0;font-family:var(--f-data);font-size:14px;font-variant-numeric:tabular-nums}
+.readout .wide{grid-column:1/-1}
+.phase{font-family:var(--f-display);font-size:30px;line-height:1;margin:0}
+.phase-sub{color:var(--muted);font-size:13px;margin:6px 0 0}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tab{cursor:pointer;font-size:12px;padding:3px 8px;border:1px solid var(--rule);background:transparent;border-radius:2px}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--plate);border-color:var(--ink)}
+.par h4{margin:10px 0 2px;font-family:var(--f-data);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+.par h4.b{color:var(--shared)} .par h4.m{color:var(--signal)} .par h4.x{color:var(--muted)}
+.par p{margin:0;font-size:13.5px}
+
+.essay{max-width:1080px;margin:0 auto;padding-block:48px 72px;padding-inline:16px;display:flex;flex-direction:column;gap:56px}
+.essay h2{font-family:var(--f-display);font-weight:500;font-size:var(--s4);line-height:1.05;margin:0 0 14px;text-wrap:balance}
+.essay h2 em{font-weight:400}
+.essay p{max-width:66ch;margin:0 0 12px}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:20px 28px}
+.legend div{min-width:0}
+.legend b{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:4px}
+.sw{width:14px;height:14px;border-radius:50%;flex:none}
+.sw.line{border-radius:0;height:2px;width:18px}
+.tbl{overflow-x:auto;border-top:1px solid var(--ink)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule)}
+th{font-family:var(--f-data);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.num{font-family:var(--f-data);font-variant-numeric:tabular-nums;white-space:nowrap}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px 40px}
+.two>div{min-width:0}
+.pull{font-family:var(--f-display);font-style:italic;font-size:24px;line-height:1.3;border-left:2px solid var(--signal);padding-left:16px;margin:8px 0 18px;max-width:40ch}
+.src{columns:2 320px;column-gap:40px;padding-left:18px;font-size:13.5px}
+.src li{margin-bottom:6px;break-inside:avoid}
+.honest{background:var(--panel);border:1px solid var(--rule);padding:16px 18px;max-width:none}
+.honest ul{margin:6px 0 0;padding-left:18px}
+.fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
+
+@media (max-width:1100px){
+  .instrument{grid-template-columns:270px minmax(0,1fr) 280px}
+}
+@media (max-width:900px){
+  .instrument{grid-template-columns:1fr;height:auto}
+  .stage{order:-1;height:72vh;min-height:460px}
+  .col{overflow:visible}
+  .col.left,.col.right{border:0;border-top:1px solid var(--rule)}
+  .out{grid-template-columns:1fr}
+  .timeline{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .step{padding:6px;font-size:0}
+  .step b{font-size:9px}
+}
+@media (prefers-reduced-motion: reduce){ .step .bar{transition:none} }
+</style>
+
+<header class="band">
+  <div>
+    <h1>Ninety-Two <em>Layers</em></h1>
+    <p class="sub">What a 2.4-trillion-parameter language model does between receiving a prompt and returning a reply, drawn first as nervous tissue and then as an animator&rsquo;s exposure sheet. Model: Qwen3.8-2.4T-A95B.</p>
+  </div>
+  <div class="meta">
+    <span class="tag">Simulation · architecture to spec</span>
+    <button class="btn" id="themeBtn" type="button">Ink plate</button>
+  </div>
+</header>
+
+<section class="instrument" aria-label="Interactive visualisation">
+  <aside class="col left">
+    <div>
+      <p class="label">Prompt</p>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div>
+      <label class="label" for="prompt">Or write your own</label>
+      <textarea id="prompt" maxlength="220" placeholder="Type a prompt of your own…"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" id="runBtn" type="button">Run prompt</button>
+        <button class="btn" id="pauseBtn" type="button" aria-pressed="false">Pause</button>
+        <button class="btn" id="stopBtn" type="button">Stop</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label for="speed">Speed</label>
+        <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1">
+        <span id="speedVal" style="font-family:var(--f-data);font-size:12px">1×</span>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn" id="followBtn" type="button" aria-pressed="true">Camera follows signal</button>
+      </div>
+    </div>
+    <div>
+      <p class="label">Tokens <span id="tokCount"></span></p>
+      <div class="chips" id="chips"></div>
+      <p class="note">Select a token to inspect it. Tokens with a dashed border were generated by the model.</p>
+    </div>
+    <div>
+      <p class="label">Embedding · <span id="embTok">—</span></p>
+      <canvas class="mini" id="emb" height="56"></canvas>
+      <p class="note">256 of its 8,192 dimensions.</p>
+    </div>
+    <div>
+      <p class="label">Routing fingerprint</p>
+      <canvas class="mini" id="fp" height="150"></canvas>
+      <p class="note">Layers 1 to 92 run from left to right. Each dot is one of the 10 experts this token was routed to, placed by its position within the layer. Blue ticks mark the full-attention layers.</p>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div class="gl-wrap" id="glWrap">
+      <div class="ctl" role="group" aria-label="Playback">
+        <button class="btn" id="pauseBtn2" type="button" aria-pressed="false" title="Pause or resume (Space)">❚❚ Pause</button>
+        <button class="btn" id="stopBtn2" type="button" title="Cancel this prompt (Esc)">■ Stop</button>
+      </div>
+      <div class="views" role="group" aria-label="Visualisation style">
+        <button class="btn" id="viewSpec" type="button" aria-pressed="true">Specimen</button>
+        <button class="btn" id="viewSheet" type="button" aria-pressed="false">Exposure sheet</button>
+      </div>
+      <canvas id="sheet" hidden aria-label="Exposure sheet: each row is a token, each column one of the 92 layers. Scroll to move through the frames; select a row to inspect its token."></canvas>
+      <canvas id="gl" aria-label="Three-dimensional view of the model's layers and experts. Drag to rotate."></canvas>
+      <div class="flag" id="flagIn">input · embeddings</div>
+      <div class="flag" id="flagOut">output · next-token scores</div>
+      <div class="flag cursor" id="flagCur" hidden></div>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="step" data-p="tokenize"><b>1 Tokenise</b>text → IDs<span class="bar"></span></div>
+      <div class="step" data-p="embed"><b>2 Embed</b>IDs → vectors<span class="bar"></span></div>
+      <div class="step" data-p="prefill"><b>3 Read</b>all tokens, 92 layers<span class="bar"></span></div>
+      <div class="step" data-p="decode"><b>4 Generate</b>one token per ascent<span class="bar"></span></div>
+      <div class="step" data-p="sample"><b>5 Choose</b>sample the next token<span class="bar"></span></div>
+    </div>
+    <div class="out">
+      <div>
+        <p class="label">Response</p>
+        <div class="resp" id="resp" aria-live="polite"></div>
+      </div>
+      <div>
+        <p class="label">Next-token candidates</p>
+        <div class="cands" id="cands"></div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="col right">
+    <div>
+      <p class="phase" id="phase">Resting</p>
+      <p class="phase-sub" id="phaseSub">Spontaneous background activity.</p>
+    </div>
+    <dl class="readout">
+      <div><dt>Layer</dt><dd id="rLayer">— / 92</dd></div>
+      <div><dt>Mixer</dt><dd id="rType">—</dd></div>
+      <div><dt>Experts firing</dt><dd id="rExp">10 + 1 / 512</dd></div>
+      <div><dt>Share active</dt><dd>≈ 2.1%</dd></div>
+      <div class="wide"><dt>Parameters used per token</dt><dd>≈ 95B of 2.4T (4%)</dd></div>
+      <div class="wide"><dt>Compute so far</dt><dd id="rFlop">0 TFLOP</dd></div>
+    </dl>
+    <div class="par" id="par">
+      <p class="label">Parallels</p>
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <h4 class="b">In a brain</h4><p id="pBrain"></p>
+      <h4 class="m">In the model</h4><p id="pModel"></p>
+      <h4 class="x">How they differ</h4><p id="pBreak"></p>
+    </div>
+  </aside>
+</section>
+
+<main class="essay">
+  <section>
+    <h2>Why I <em>made this</em></h2>
+    <p>Much of my career has been spent making invisible processes visible. In visual effects, a fluid simulation is a set of equations until someone decides how it should look. In animation, a character&rsquo;s weight and intention exist only once they have been drawn into motion. This piece applies the same habit of mind to a large language model.</p>
+    <p>I made it in response to a phrase I hear often, in studios and in lecture theatres: that AI is just a tool. I understand why the phrase is reassuring, because it leaves authorship firmly with the person using the system. I do not think it is accurate. A tool does what its maker specified, and nobody specified, line by line, what this system does. What happens inside it between a prompt and a reply is a process we are still learning to describe.</p>
+    <p>The visualisation is an interpretation. It is built to the published architecture of a single model, and it is clear about where it simulates activity. The piece starts from a simple question, and it is the kind of question practitioners ask of any process they work with: if we could watch it unfold, what would we recognise in it?</p>
+  </section>
+
+  <section>
+    <h2>Reading the <em>specimen</em></h2>
+    <p>The first view draws the model as a histologist might draw a section of cortex. Input enters at the base, and the signal rises through the layers. Each point is an expert sub-network, 512 in each of the 92 layers and 47,104 in all. At this density each point stands in for roughly 4.7 billion weights, so the image is a compression, in the same way that any drawing of a brain is.</p>
+    <div class="legend" style="margin-top:22px">
+      <div><b><span class="sw" style="background:var(--tissue)"></span>Resting expert</b>An expert this token did not call on. Most of the tissue is quiet most of the time, which is true of the cortex as well.</div>
+      <div><b><span class="sw" style="background:var(--signal)"></span>Firing expert</b>One of the 10 experts the router selected for this token in this layer. The arc that reaches it plays the part of a dendrite, carrying the signal in.</div>
+      <div><b><span class="sw" style="background:var(--shared)"></span>Shared expert</b>The node at the centre of each layer. Every token passes through it.</div>
+      <div><b><span class="sw line" style="background:var(--ink)"></span>Residual stream</b>The vertical threads, one for each token. Each layer reads from its thread and writes back to it, much as an axon carries a signal forward.</div>
+      <div><b><span class="sw line" style="background:var(--assoc)"></span>Attention arc</b>Drawn in every fourth layer, where full attention allows a token to draw on earlier tokens. The rings in the remaining layers mark the linear-attention memory being updated.</div>
+      <div><b><span class="sw" style="border:1px solid var(--muted)"></span>Ascent</b>The full climb through 92 layers happens once for every token the model writes. A single word of reply costs one complete pass.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Reading the <em>exposure sheet</em></h2>
+    <p>The second view borrows the animator&rsquo;s exposure sheet, the document that tells a camera operator what to shoot, frame by frame. Here each row is a frame and each frame is a token. The columns are the levels of a cel stack, except that they are the 92 layers, composited from left to right to resolve each token. Every eighth row is ruled more heavily, and every sixteenth carries a footage mark, as it would on a sheet for 35mm film.</p>
+    <p>I found the comparison closer than I expected. A language model works straight ahead, committing to one frame before it begins the next. However, the research on rhyme planning suggests that it also works a little like pose-to-pose animation, holding a destination in mind before the in-betweens are drawn. The blue arcs in the full-attention columns behave like onion skinning, with each frame looking back through the earlier ones before it is resolved.</p>
+    <div class="legend" style="margin-top:22px">
+      <div><b><span class="sw line" style="background:var(--ink)"></span>FR and DIAL.</b>The frame number and the token itself, written where an animator would note the dialogue. Prompt tokens sit on plain rows; generated tokens sit on shaded rows.</div>
+      <div><b><span class="sw" style="background:var(--signal);border-radius:1px"></span>Levels</b>One cell for each layer. A cell lights as the token passes through it, and the ten small ticks inside show which experts were used, placed by their position in the layer.</div>
+      <div><b><span class="sw line" style="background:var(--assoc)"></span>Onion skin</b>In the 23 full-attention columns, arcs reach back to the earlier frames the token draws on. Those frames are briefly highlighted.</div>
+      <div><b><span class="sw" style="border:1px solid var(--muted);border-radius:1px"></span>CAM.</b>The probability the model gave the token it chose. Prompt tokens are marked &ldquo;in&rdquo;, because they were given rather than chosen.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Similarities and <em>differences</em></h2>
+    <p>The comparison is useful because both systems compute with very large numbers of simple units whose connections were shaped by experience. It becomes misleading if it suggests that the units are the same kind of thing. The most important correction is that a parameter is closer to a synapse, a single connection between neurons, than to a neuron itself.</p>
+    <div class="tbl" style="margin-top:18px">
+      <table>
+        <thead><tr><th>Quantity</th><th>Qwen3.8-2.4T-A95B</th><th>Human brain</th><th>Comment</th></tr></thead>
+        <tbody>
+          <tr><td>Connection weights</td><td class="num">2.4 × 10¹² parameters</td><td class="num">≈ 1.5 × 10¹⁴ synapses (cortex)</td><td>The cortex alone holds roughly sixty times as many connections, and each synapse is a dynamic chemical structure rather than a single number.</td></tr>
+          <tr><td>Units</td><td class="num">47,104 experts · 8,192-wide stream</td><td class="num">≈ 86 × 10⁹ neurons</td><td>There is no clean equivalent of a neuron. Interpretability research finds concepts distributed across many units, a property known as superposition.</td></tr>
+          <tr><td>Active at once</td><td class="num">10 + 1 of 512 experts (≈ 2%)</td><td class="num">a small percentage of cortical neurons</td><td>Both systems are sparse, and largely for the same reason: activity is expensive. Each token uses about 95 billion of the 2.4 trillion weights.</td></tr>
+          <tr><td>Depth</td><td class="num">92 layers</td><td class="num">6 cortical layers</td><td>Cortical layers are defined by cell types and wiring. Model layers are repeated stages of processing.</td></tr>
+          <tr><td>Learning</td><td>Trained once, then fixed</td><td>Continuous, local plasticity</td><td>Nothing in the model changes while it answers.</td></tr>
+          <tr><td>Energy</td><td>Racks of data-centre GPUs</td><td class="num">≈ 20% of the body&rsquo;s energy at 2% of its weight</td><td>The brain does all of this, and a great deal more, on a metabolic budget.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="two">
+    <div>
+      <h2>Is it just <em>a tool?</em></h2>
+      <p>A tool, in the ordinary sense, is specified. Each of its behaviours can be traced to a decision someone made. None of the 2.4 trillion numbers in this model was written by a person. They were set by an optimisation process run over a vast archive of human writing, and what they encode has to be discovered after the fact. The methods used to discover it look more like neuroscience than software engineering.</p>
+      <p>That research has found structure that nobody designed. When Anthropic&rsquo;s interpretability team traced a model writing a rhyming couplet, they found it selecting the rhyme word before beginning the line, then composing the line to arrive there (Lindsey et al., 2025). This finding needs some care. Saying that the model plans describes what it does; it does not mean that the model intends anything. Even so, planning of this kind is not something we would expect from a tool.</p>
+    </div>
+    <div>
+      <h2>The opposing <em>view</em></h2>
+      <p>There are strong arguments against this position. Bender and colleagues argue that a language model reproduces the statistical form of language without access to meaning, and that its fluency invites us to project minds where there are none (Bender et al., 2021). From that perspective, an image of nervous tissue could be seen as part of the problem, because it makes arithmetic look alive.</p>
+      <p>The piece is not intended to settle this debate. What it offers is a way of looking at the space between the two positions. The system has no body, and it does not keep learning once it has been trained, but nor is it an instrument whose behaviour someone authored. For practitioners, I think it is more useful to treat it as a collaborator whose cognition is partial and unfamiliar, and to work with it on those terms.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Method and <em>sources</em></h2>
+    <div class="honest">
+      <b>What is real here and what is simulated</b>
+      <ul>
+        <li><b>Real:</b> the structure. The figures used throughout are 92 layers, 512 routed experts with 10 active plus 1 shared, 23 full-attention and 69 linear-attention layers, 64 query heads, an 8,192-wide stream, a vocabulary of 248,320 tokens and the token-by-token generation loop. Each is triangulated across the vLLM launch post, the HF architecture viewer and APXML. The count of shared experts comes from APXML alone.</li>
+        <li><b>Simulated:</b> which experts fire. No model of 2.4 trillion parameters can run in a browser, so routing is a deterministic stand-in in which the same word always takes the same path. It is also clustered by position to make specialisation visible. Real routers specialise more by syntax and token type than by tidy topic.</li>
+        <li><b>Simulated:</b> the tokenisation is approximate, and the token IDs and probabilities are illustrative. I wrote the replies to the four sample prompts for this piece. Replies to your own prompts appear as masked tokens, because inventing text and attributing it to the model would be false.</li>
+        <li><b>Approximate:</b> compute is estimated with the standard rule of thumb of about two floating-point operations per active parameter per token, roughly 190 GFLOP. The estimate ignores the cost of attention.</li>
+      </ul>
+    </div>
+    <ol class="src" style="margin-top:22px">
+      <li><a href="https://vllm.ai/blog/2026-08-12-qwen3.8" target="_blank" rel="noopener">vLLM: Day-0 support for Qwen3.8-2.4T-A95B</a> (92 layers, 512 experts, full attention every fourth layer)</li>
+      <li><a href="https://hfviewer.com/Qwen/Qwen3.8-2.4T-A95B" target="_blank" rel="noopener">HF Viewer: architecture graph for Qwen3.8-2.4T-A95B</a> (hidden size, experts per token, heads, vocabulary, context)</li>
+      <li><a href="https://apxml.com/models/qwen38-24t-a95b" target="_blank" rel="noopener">APXML: Qwen3.8 2.4T A95B specifications</a> (shared expert, Gated DeltaNet, release date)</li>
+      <li><a href="https://recipes.vllm.ai/Qwen/Qwen3.8-2.4T-A95B" target="_blank" rel="noopener">vLLM recipes: serving on B300 / GB300</a></li>
+      <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al. (2017), Attention Is All You Need</a></li>
+      <li><a href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener">Shazeer et al. (2017), Sparsely-Gated Mixture-of-Experts</a></li>
+      <li><a href="https://arxiv.org/abs/2412.06464" target="_blank" rel="noopener">Yang et al. (2024), Gated Delta Networks</a></li>
+      <li><a href="https://arxiv.org/abs/2401.04088" target="_blank" rel="noopener">Jiang et al. (2024), Mixtral of Experts</a> (routing follows syntax more than topic)</li>
+      <li><a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noopener">Kaplan et al. (2020), Scaling Laws</a> (≈ 2N FLOPs per token)</li>
+      <li><a href="https://transformer-circuits.pub/2025/attribution-graphs/biology.html" target="_blank" rel="noopener">Lindsey et al. (2025), On the Biology of a Large Language Model</a> (rhyme planning)</li>
+      <li><a href="https://transformer-circuits.pub/2022/toy_model/index.html" target="_blank" rel="noopener">Elhage et al. (2022), Toy Models of Superposition</a></li>
+      <li><a href="https://pubmed.ncbi.nlm.nih.gov/19226510/" target="_blank" rel="noopener">Azevedo et al. (2009)</a> (≈ 86 billion neurons)</li>
+      <li><a href="https://bionumbers.hms.harvard.edu/bionumber.aspx?id=112056" target="_blank" rel="noopener">BioNumbers 112056</a> (≈ 1.5 × 10¹⁴ cortical synapses; Pakkenberg et al., 2003)</li>
+      <li><a href="https://www2.bcs.rochester.edu/sites/plennie/pdfs/Lennie03a.pdf" target="_blank" rel="noopener">Lennie (2003), The Cost of Cortical Computation</a> (sparse firing)</li>
+      <li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC124895" target="_blank" rel="noopener">Raichle &amp; Gusnard (2002), Appraising the brain&rsquo;s energy budget</a></li>
+      <li><a href="https://dl.acm.org/doi/10.1145/3442188.3445922" target="_blank" rel="noopener">Bender et al. (2021), On the Dangers of Stochastic Parrots</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/Twelve_basic_principles_of_animation" target="_blank" rel="noopener">Thomas &amp; Johnston (1981), the principles of animation</a> (straight-ahead action and pose-to-pose)</li>
+    </ol>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const TAU=Math.PI*2;
+const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function hashStr(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h>>>0;}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- content ---------- */
+const PRESETS=[
+  {p:"Is an AI model just a tool?",r:"A hammer only does what the hand does. I was not written line by line: my habits were learned from human writing, and nobody chose most of what I do."},
+  {p:"Where can I find good resources to improve my motion design technical skills?",r:"Try School of Motion for structured After Effects courses, Ben Marriott's YouTube tutorials, Greyscalegorilla for Cinema 4D, and Entagma for Houdini. Then rebuild shots you admire, frame by frame."},
+  {p:"What is the definition of an ident?",r:"An ident is a short piece of branded motion, usually a few seconds long, that identifies a channel, network or company. Broadcasters play idents between programmes to reinforce their identity."},
+  {p:"Build me a list of cool colours with their assigned HEX codes.",r:"Here are seven cool colours:\nCerulean #007BA7\nTeal #008080\nCobalt #0047AB\nPeriwinkle #CCCCFF\nMint #98FF98\nNavy #000080\nLavender #E6E6FA"}
+];
+const PAR={
+  tokenize:{tab:"Senses",brain:"Sensory transduction. Photoreceptors and hair cells convert light and sound into electrical signals before anything is understood.",model:"The prompt is cut into tokens drawn from a fixed vocabulary of 248,320 pieces. Each piece becomes an integer.",breaks:"The brain has no fixed vocabulary. Its input is continuous, arrives through several senses at once and never stops."},
+  embed:{tab:"Coding",brain:"Population coding. A face or a word is carried by a pattern of activity across many neurons, not by a single cell.",model:"Each token's integer retrieves a vector of 8,192 numbers. The meaning lies in the pattern across all of them, not in any one value.",breaks:"The vector is exact and repeatable. Neural codes are noisy, and the same stimulus never produces quite the same pattern twice."},
+  memory:{tab:"Memory",brain:"Working memory. While reading a sentence, you hold a compressed running summary of it, not a recording of every word.",model:"69 of the 92 layers use Gated DeltaNet linear attention: a running state of fixed size, updated by each token and allowed to forget.",breaks:"The state is a matrix updated by a fixed rule. Biological working memory rests on sustained firing and chemistry that we only partly understand."},
+  attention:{tab:"Recall",brain:"Associative recall. A cue, such as a smell or a name, retrieves a related memory directly.",model:"Every fourth layer, 23 in all, uses full attention. Its 64 query heads allow each token to look back at every earlier token and draw on whatever is relevant.",breaks:"Attention reaches back only as far as the current context, up to 262,144 tokens. Nothing outside the conversation is remembered."},
+  experts:{tab:"Sparsity",brain:"Sparse coding. At any moment only a small fraction of cortical neurons fire strongly, which keeps the brain's energy costs within bounds.",model:"In each layer a learned router sends every token to 10 of 512 experts, plus one shared expert. Roughly 2% of the experts, about 95 billion of the 2.4 trillion parameters, do the work for any single token.",breaks:"Experts are interchangeable blocks, switched in and out token by token. Regions of the brain are wired in place; they are not exchanged word by word."},
+  sample:{tab:"Choice",brain:"Decision by competition. Populations of neurons accumulate evidence for alternatives until one prevails.",model:"The top layer scores all 248,320 possible next tokens. One is sampled and appended, and the whole ascent through 92 layers begins again.",breaks:"Nothing in the model changes while it answers. Synapses change with every experience; this model learned once and is now fixed."}
+};
+const PAR_KEYS=Object.keys(PAR);
+const FILLER=[" the"," a"," and"," of"," to"," it"," is"," in"," that"," as"," with"," light"," soft"," slowly"," its"," you"," but",","," ."," one"," more"," how"," like"];
+
+/* ---------- tokenizer (approximation of byte-level BPE) ---------- */
+function tokenize(text){
+  const out=[];const re=/\n|\s?[A-Za-zÀ-ɏ']+|\s?\d|\s?[^\sA-Za-z\d]/g;let m;
+  while((m=re.exec(text))){
+    const t=m[0];const lead=t[0]===' '?' ':'';const w=lead?t.slice(1):t;
+    if(/^[A-Za-z']+$/.test(w)&&w.length>7){
+      let rest=w;const parts=[];while(rest.length>7){const n=rest.length>10?5:4;parts.push(rest.slice(0,n));rest=rest.slice(n);}parts.push(rest);
+      parts.forEach((p,j)=>out.push((j===0?lead:'')+p));
+    }else out.push(t);
+  }
+  return out;
+}
+
+/* ---------- architecture ---------- */
+const L=92,E=512,K=10,MAXTOK=128,SP=0.24,NE=L*E,NP=NE+L;
+const yOf=l=>(l-(L-1)/2)*SP;
+const isFull=l=>(l%4)===3;
+const Rl=l=>{const u=l/(L-1);return 3.9+1.7*Math.sin(u*Math.PI)+0.3*Math.sin(u*11+1);};
+
+/* ---------- three.js setup ---------- */
+const canvas=$('#gl'),wrap=$('#glWrap');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true});}catch(err){
+  const d=document.createElement('div');d.className='fallback';d.textContent='This visualisation needs WebGL, which is unavailable in this browser. The commentary below still applies.';wrap.appendChild(d);return;
+}
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,0.1,300);
+
+const PV=`attribute float aAct;attribute float aSize;attribute float aKind;uniform float uScale;varying float vAct;varying float vKind;
+void main(){vAct=aAct;vKind=aKind;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*(1.0+aAct*2.4)*uScale/max(0.5,-mv.z);gl_Position=projectionMatrix*mv;}`;
+const PF=`uniform vec3 uBase;uniform vec3 uHot;uniform vec3 uShared;uniform float uBaseA;varying float vAct;varying float vKind;
+void main(){vec2 c=gl_PointCoord-0.5;float d=length(c);if(d>0.5)discard;float g=smoothstep(0.5,0.0,d);g*=g;float a=clamp(vAct,0.0,1.0);
+vec3 hot=mix(uHot,uShared,vKind);vec3 col=mix(uBase,hot,a);float al=(uBaseA*(1.0+vKind)+(1.0-uBaseA)*a)*g;gl_FragColor=vec4(col,al);}`;
+const LV=`attribute float aAlpha;attribute float aMix;varying float vA;varying float vM;void main(){vA=aAlpha;vM=aMix;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const LF=`uniform vec3 uA;uniform vec3 uB;uniform float uGain;varying float vA;varying float vM;void main(){if(vA<0.004)discard;gl_FragColor=vec4(mix(uA,uB,vM),clamp(vA*uGain,0.0,1.0));}`;
+
+function lineMat(){return new THREE.ShaderMaterial({vertexShader:LV,fragmentShader:LF,transparent:true,depthWrite:false,uniforms:{uA:{value:new THREE.Color()},uB:{value:new THREE.Color()},uGain:{value:1}}});}
+function pointMat(){return new THREE.ShaderMaterial({vertexShader:PV,fragmentShader:PF,transparent:true,depthWrite:false,uniforms:{uBase:{value:new THREE.Color()},uHot:{value:new THREE.Color()},uShared:{value:new THREE.Color()},uBaseA:{value:.2},uScale:{value:60}}});}
+function dyn(arr,n){const a=new THREE.BufferAttribute(arr,n);a.setUsage(THREE.DynamicDrawUsage);return a;}
+
+/* experts */
+const rng0=mulberry(9001);
+const pos=new Float32Array(NP*3),act=new Float32Array(NP),psize=new Float32Array(NP),kind=new Float32Array(NP),theta=new Float32Array(NE);
+for(let l=0;l<L;l++){const R=Rl(l);for(let e=0;e<E;e++){
+  const f=(e+.5)/E,r=1.75+(R-1.75)*Math.sqrt(f)+(rng0()-.5)*.14,th=e*2.39996323+l*0.21+(rng0()-.5)*.05,i=l*E+e;
+  theta[i]=((th%TAU)+TAU)%TAU;
+  pos[i*3]=r*Math.cos(th);pos[i*3+1]=yOf(l)+(rng0()-.5)*.08+.13*Math.sin(th*3+l*.15)*f;pos[i*3+2]=r*Math.sin(th);
+  psize[i]=0.7+rng0()*0.9;
+}}
+for(let l=0;l<L;l++){const i=NE+l;pos[i*3]=0;pos[i*3+1]=yOf(l);pos[i*3+2]=0;psize[i]=2.4;kind[i]=1;}
+const gExp=new THREE.BufferGeometry();
+gExp.setAttribute('position',new THREE.BufferAttribute(pos,3));
+const actAttr=dyn(act,1);gExp.setAttribute('aAct',actAttr);
+gExp.setAttribute('aSize',new THREE.BufferAttribute(psize,1));
+gExp.setAttribute('aKind',new THREE.BufferAttribute(kind,1));
+const mExp=pointMat();scene.add(new THREE.Points(gExp,mExp));
+
+/* static filaments between neighbouring experts (phyllotaxis neighbours are e±13, 21, 34) */
+const filPos=[],filA=[],filM=[];
+(function(){const r=mulberry(77);const NB=[13,21,34];
+  for(let l=0;l<L;l++){for(let k=0;k<64;k++){
+    const e=Math.floor(r()*(E-40));const e2=e+NB[Math.floor(r()*3)];const l2=(r()<.45&&l<L-1)?l+1:l;
+    const a=l*E+e,b=l2*E+e2;
+    const p0=[pos[a*3],pos[a*3+1],pos[a*3+2]],p2=[pos[b*3],pos[b*3+1],pos[b*3+2]];
+    const p1=[(p0[0]+p2[0])/2+(r()-.5)*.35,(p0[1]+p2[1])/2+(r()-.5)*.2,(p0[2]+p2[2])/2+(r()-.5)*.35];
+    const al=.05+r()*.11;let prev=p0;
+    for(let s=1;s<=4;s++){const t=s/4,u=1-t;const q=[u*u*p0[0]+2*u*t*p1[0]+t*t*p2[0],u*u*p0[1]+2*u*t*p1[1]+t*t*p2[1],u*u*p0[2]+2*u*t*p1[2]+t*t*p2[2]];
+      filPos.push(...prev,...q);filA.push(al,al);filM.push(0,0);prev=q;}
+  }}})();
+const gFil=new THREE.BufferGeometry();
+gFil.setAttribute('position',new THREE.Float32BufferAttribute(filPos,3));
+gFil.setAttribute('aAlpha',new THREE.Float32BufferAttribute(filA,1));
+gFil.setAttribute('aMix',new THREE.Float32BufferAttribute(filM,1));
+const mFil=lineMat();scene.add(new THREE.LineSegments(gFil,mFil));
+
+/* token trunks (residual streams) */
+function trunkPt(i,l){
+  const a=i*2.39996323+0.6,r=0.2+0.95*Math.sqrt((i%MAXTOK+.5)/MAXTOK);
+  const y=l<0?yOf(0)-0.8:(l>=L?yOf(L-1)+0.8:yOf(l));const ll=Math.max(-1,Math.min(L,l));
+  return [r*Math.cos(a)+.05*Math.sin(ll*.35+i),y,r*Math.sin(a)+.05*Math.cos(ll*.3+i*1.7)];
+}
+const TSEG=L+1;
+const tPos=new Float32Array(MAXTOK*TSEG*6),tA=new Float32Array(MAXTOK*TSEG*2),tM=new Float32Array(MAXTOK*TSEG*2);
+for(let i=0;i<MAXTOK;i++){for(let s=0;s<TSEG;s++){const p=trunkPt(i,s-1),q=trunkPt(i,s);const o=(i*TSEG+s)*6;tPos.set(p,o);tPos.set(q,o+3);}}
+const gTr=new THREE.BufferGeometry();
+gTr.setAttribute('position',new THREE.BufferAttribute(tPos,3));
+const tAAttr=dyn(tA,1);gTr.setAttribute('aAlpha',tAAttr);gTr.setAttribute('aMix',new THREE.BufferAttribute(tM,1));
+const mTr=lineMat();scene.add(new THREE.LineSegments(gTr,mTr));
+const trunkLevel=new Float32Array(MAXTOK).fill(-2),trunkOn=new Uint8Array(MAXTOK),trunkSel=new Uint8Array(MAXTOK);
+
+/* layer rings (attention mixers) */
+const RS=48;
+const rPos=new Float32Array(L*RS*6),rA=new Float32Array(L*RS*2),rM=new Float32Array(L*RS*2);
+for(let l=0;l<L;l++){const rad=1.45;for(let s=0;s<RS;s++){const a0=s/RS*TAU,a1=(s+1)/RS*TAU,o=(l*RS+s)*6;
+  rPos.set([rad*Math.cos(a0),yOf(l),rad*Math.sin(a0),rad*Math.cos(a1),yOf(l),rad*Math.sin(a1)],o);
+  rM[(l*RS+s)*2]=rM[(l*RS+s)*2+1]=isFull(l)?1:0;}}
+const gRing=new THREE.BufferGeometry();
+gRing.setAttribute('position',new THREE.BufferAttribute(rPos,3));
+const rAAttr=dyn(rA,1);gRing.setAttribute('aAlpha',rAAttr);gRing.setAttribute('aMix',new THREE.BufferAttribute(rM,1));
+const mRing=lineMat();scene.add(new THREE.LineSegments(gRing,mRing));
+const ringAct=new Float32Array(L);
+
+/* dynamic segments: dendrites + attention arcs */
+const NSEG=22000;
+const dPos=new Float32Array(NSEG*6),dA=new Float32Array(NSEG*2),dM=new Float32Array(NSEG*2);
+const gDyn=new THREE.BufferGeometry();
+const dPosAttr=dyn(dPos,3),dAAttr=dyn(dA,1),dMAttr=dyn(dM,1);
+gDyn.setAttribute('position',dPosAttr);gDyn.setAttribute('aAlpha',dAAttr);gDyn.setAttribute('aMix',dMAttr);
+const mDyn=lineMat();const dynLines=new THREE.LineSegments(gDyn,mDyn);dynLines.frustumCulled=false;scene.add(dynLines);
+let dPtr=0,dDirty=false;
+function bez(p0,p1,p2,t){const u=1-t;return[u*u*p0[0]+2*u*t*p1[0]+t*t*p2[0],u*u*p0[1]+2*u*t*p1[1]+t*t*p2[1],u*u*p0[2]+2*u*t*p1[2]+t*t*p2[2]];}
+function addCurve(p0,p1,p2,segs,mix,alpha){
+  let prev=p0;for(let s=1;s<=segs;s++){const q=bez(p0,p1,p2,s/segs);const o=dPtr*6;dPos[o]=prev[0];dPos[o+1]=prev[1];dPos[o+2]=prev[2];dPos[o+3]=q[0];dPos[o+4]=q[1];dPos[o+5]=q[2];
+    const fade=alpha*(0.55+0.45*Math.sin(s/segs*Math.PI));dA[dPtr*2]=dA[dPtr*2+1]=fade;dM[dPtr*2]=dM[dPtr*2+1]=mix;prev=q;dPtr=(dPtr+1)%NSEG;}
+  dDirty=true;
+}
+
+/* sparks travelling along dendrites */
+const NSPK=4000;
+const sPos=new Float32Array(NSPK*3),sAct=new Float32Array(NSPK),sSize=new Float32Array(NSPK).fill(1.5),sKind=new Float32Array(NSPK);
+const sP=new Float32Array(NSPK*9),sT=new Float32Array(NSPK).fill(2),sSpd=new Float32Array(NSPK),sTgt=new Int32Array(NSPK).fill(-1);
+const gSpk=new THREE.BufferGeometry();
+const sPosAttr=dyn(sPos,3),sActAttr=dyn(sAct,1),sKindAttr=dyn(sKind,1);
+gSpk.setAttribute('position',sPosAttr);gSpk.setAttribute('aAct',sActAttr);gSpk.setAttribute('aSize',new THREE.BufferAttribute(sSize,1));gSpk.setAttribute('aKind',sKindAttr);
+const mSpk=pointMat();const spkPts=new THREE.Points(gSpk,mSpk);spkPts.frustumCulled=false;scene.add(spkPts);
+let sPtr=0;
+function spawnSpark(p0,p1,p2,dur,target,kd){const i=sPtr;sPtr=(sPtr+1)%NSPK;sP.set(p0,i*9);sP.set(p1,i*9+3);sP.set(p2,i*9+6);sT[i]=0;sSpd[i]=1/dur;sTgt[i]=target;sKind[i]=kd||0;}
+
+/* ---------- theme ---------- */
+function themeColors(){
+  const cs=getComputedStyle(document.documentElement);const g=n=>cs.getPropertyValue(n).trim();
+  const dark=parseFloat(g('--is-dark'))===1;
+  const C=n=>new THREE.Color(g(n)||'#888');
+  renderer.setClearColor(C('--plate'),1);
+  const blend=dark?THREE.AdditiveBlending:THREE.NormalBlending;
+  [mExp,mSpk,mFil,mTr,mRing,mDyn].forEach(m=>{m.blending=blend;m.needsUpdate=true;});
+  mExp.uniforms.uBase.value=C('--tissue');mExp.uniforms.uHot.value=C('--signal');mExp.uniforms.uShared.value=C('--shared');mExp.uniforms.uBaseA.value=dark?.26:.13;
+  mSpk.uniforms.uBase.value=C('--signal');mSpk.uniforms.uHot.value=dark?new THREE.Color('#fff4e0'):C('--signal');mSpk.uniforms.uShared.value=C('--assoc');mSpk.uniforms.uBaseA.value=0;
+  mFil.uniforms.uA.value=C('--tissue');mFil.uniforms.uGain.value=dark?1.1:0.9;
+  mTr.uniforms.uA.value=C('--ink');mTr.uniforms.uB.value=C('--signal');mTr.uniforms.uGain.value=dark?.9:.85;
+  mRing.uniforms.uA.value=C('--tissue');mRing.uniforms.uB.value=C('--assoc');mRing.uniforms.uGain.value=1;
+  mDyn.uniforms.uA.value=C('--signal');mDyn.uniforms.uB.value=C('--assoc');mDyn.uniforms.uGain.value=dark?1:.7;
+  $('#themeBtn').textContent=dark?'Switch to ink plate':'Switch to fluorescence';
+  sheetColors();drawEmb();drawFP();
+}
+const root=document.documentElement;
+try{const t=localStorage.getItem('n92-theme');if(t==='dark'||t==='light')root.setAttribute('data-theme',t);}catch(e){}
+$('#themeBtn').addEventListener('click',()=>{
+  const dark=parseFloat(getComputedStyle(root).getPropertyValue('--is-dark'))===1;const next=dark?'light':'dark';
+  root.setAttribute('data-theme',next);try{localStorage.setItem('n92-theme',next);}catch(e){}themeColors();
+});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeColors);
+
+/* ---------- camera ---------- */
+const cam={az:0.6,el:0.18,dist:34,ty:0,tDist:34,tTy:0,drag:false,lx:0,ly:0,idle:0};
+let follow=true;
+canvas.addEventListener('pointerdown',e=>{cam.drag=true;cam.lx=e.clientX;cam.ly=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!cam.drag)return;cam.az+=(e.clientX-cam.lx)*0.006;cam.el=Math.max(-0.9,Math.min(1.2,cam.el+(e.clientY-cam.ly)*0.004));cam.lx=e.clientX;cam.ly=e.clientY;cam.idle=0;});
+canvas.addEventListener('pointerup',()=>{cam.drag=false;});
+canvas.addEventListener('pointercancel',()=>{cam.drag=false;});
+canvas.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();cam.zoom=(cam.zoom||1)*Math.exp(e.deltaY*0.002);cam.zoom=Math.max(.35,Math.min(1.6,cam.zoom));},{passive:false});
+function resize(){const w=wrap.clientWidth,h=wrap.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+  const s=h*0.055*renderer.getPixelRatio();mExp.uniforms.uScale.value=s;mSpk.uniforms.uScale.value=s;
+  const base=w/h<0.8?48:40;cam.base=base;}
+new ResizeObserver(resize).observe(wrap);
+new ResizeObserver(()=>{drawEmb();drawFP();}).observe(document.querySelector('.col.left'));
+
+/* ---------- token model ---------- */
+let tokens=[];let selected=-1;
+function makeToken(text,isPrompt){
+  const idx=tokens.length;const key=text.trim().toLowerCase()||text;
+  const id=hashStr(text)%248320;const pref=(hashStr(key+'#')%62832)/10000;
+  const routes=[];
+  for(let l=0;l<L;l++){
+    const r=mulberry(hashStr(key)+l*7919);const set=new Set();const pa=(pref+l*0.045)%TAU;let tries=0;
+    while(set.size<7&&tries<400){tries++;const e=Math.floor(r()*E);const th=theta[l*E+e];let d=Math.abs(th-pa);d=Math.min(d,TAU-d);if(r()<Math.exp(-d*d/0.35))set.add(e);}
+    while(set.size<K)set.add(Math.floor(r()*E));
+    routes.push([...set]);
+  }
+  const tok={text,key,id,pref,routes,idx,isPrompt,masked:false};tokens.push(tok);
+  trunkOn[idx%MAXTOK]=1;trunkLevel[idx%MAXTOK]=-2;return tok;
+}
+function fireLayer(i,l,visual,dur){
+  cellFire[(i%MAXTOK)*L+l]=1;
+  const tok=tokens[i];const route=tok.routes[l];const tp=trunkPt(i,l);
+  for(const e of route){const ix=l*E+e;
+    if(visual){const ep=[pos[ix*3],pos[ix*3+1],pos[ix*3+2]];const c=[(tp[0]+ep[0])*.5*1.1,(tp[1]+ep[1])*.5+0.28,(tp[2]+ep[2])*.5*1.1];
+      addCurve(tp,c,ep,6,0,0.75);spawnSpark(tp,c,ep,dur,ix,0);}
+    else act[ix]=Math.max(act[ix],0.85);
+  }
+  act[NE+l]=1;ringAct[l]=Math.max(ringAct[l],isFull(l)?1:0.55);
+  if(isFull(l)&&i>0){
+    const r=mulberry(hashStr(tok.key)+l*31+i);const n=Math.min(i,visual?4:2);const used=new Set();
+    for(let k=0;k<n;k++){let j=r()<0.35?0:Math.floor(Math.pow(r(),0.6)*i);if(r()<0.3)j=i-1;if(used.has(j))continue;used.add(j);
+      const q=trunkPt(j,l);const h=0.25+0.12*Math.abs(i-j)/(tokens.length+1)*8;
+      const c=[(tp[0]+q[0])*.5,(tp[1]+q[1])*.5+h,(tp[2]+q[2])*.5];addCurve(q,c,tp,10,1,visual?.9:.45);arcs.push({i,j,l,a:visual?1:.6});if(arcs.length>700)arcs.splice(0,arcs.length-700);
+      if(visual)spawnSpark(q,c,tp,dur*1.2,-1,1);}
+  }
+}
+
+/* ---------- UI ---------- */
+const presetsEl=$('#presets');
+PRESETS.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.className='preset';b.textContent=p.p;b.addEventListener('click',()=>{$('#prompt').value='';start(i);});presetsEl.appendChild(b);});
+const tabsEl=$('#tabs');let parAuto=true,parKey='tokenize';
+PAR_KEYS.forEach(k=>{const b=document.createElement('button');b.type='button';b.className='tab';b.setAttribute('role','tab');b.dataset.k=k;b.textContent=PAR[k].tab;b.addEventListener('click',()=>{parAuto=false;showPar(k);});tabsEl.appendChild(b);});
+function showPar(k){parKey=k;const d=PAR[k];$('#pBrain').textContent=d.brain;$('#pModel').textContent=d.model;$('#pBreak').textContent=d.breaks;
+  tabsEl.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.k===k?'true':'false'));}
+function autoPar(k){if(parAuto&&k!==parKey)showPar(k);}
+showPar('experts');
+
+let speed=1;
+$('#speed').addEventListener('input',e=>{speed=parseFloat(e.target.value);$('#speedVal').textContent=speed+'×';});
+let paused=false;
+function setPaused(v){paused=v;[['#pauseBtn',v?'Resume':'Pause'],['#pauseBtn2',v?'▶ Resume':'❚❚ Pause']].forEach(([id,t])=>{const b=$(id);b.setAttribute('aria-pressed',v);b.textContent=t;});
+  if(run&&v){$('#phaseSub').dataset.prev=$('#phaseSub').textContent;$('#phaseSub').textContent='Paused. Press Resume or Space to continue.';}
+  else if(run&&$('#phaseSub').dataset.prev){$('#phaseSub').textContent=$('#phaseSub').dataset.prev;delete $('#phaseSub').dataset.prev;}}
+function syncCtl(){const live=!!run&&run.phase!=='done';['#pauseBtn','#pauseBtn2','#stopBtn','#stopBtn2'].forEach(id=>{$(id).disabled=!live;});}
+function stopRun(){if(!run)return;run=null;setPaused(false);presetsEl.querySelectorAll('.preset').forEach(b=>b.setAttribute('aria-current','false'));
+  respEl.querySelectorAll('.latest').forEach(n=>n.classList.remove('latest'));candsEl.innerHTML='';
+  setPhase('Stopped','The prompt was cancelled. Choose a prompt to run again.','');syncCtl();}
+['#pauseBtn','#pauseBtn2'].forEach(id=>$(id).addEventListener('click',()=>{if(run)setPaused(!paused);}));
+['#stopBtn','#stopBtn2'].forEach(id=>$(id).addEventListener('click',stopRun));
+document.addEventListener('keydown',e=>{const tag=(e.target.tagName||'').toLowerCase();if(tag==='textarea'||tag==='input')return;
+  if(e.key==='Escape'){stopRun();}else if(e.key===' '&&run&&run.phase!=='done'){e.preventDefault();setPaused(!paused);}});
+$('#followBtn').addEventListener('click',e=>{follow=!follow;e.currentTarget.setAttribute('aria-pressed',follow);});
+$('#runBtn').addEventListener('click',()=>{const v=$('#prompt').value.trim();if(v)start(-1,v);else start(0);});
+$('#prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('#runBtn').click();}});
+
+const chipsEl=$('#chips');
+function visTok(t){return t==='\n'?'↵':t.replace(/^ /,'␣');}
+function addChip(tok){const b=document.createElement('button');b.type='button';b.className='chip'+(tok.isPrompt?'':' gen');b.setAttribute('aria-pressed','false');
+  const v=visTok(tok.masked?' ▮':tok.text);b.innerHTML='';const s=document.createElement('span');
+  if(v[0]==='␣'){const sp=document.createElement('span');sp.className='sp';sp.textContent='␣';s.appendChild(sp);s.appendChild(document.createTextNode(v.slice(1)));}else s.textContent=v;
+  const sm=document.createElement('small');sm.textContent=tok.masked?'id ——':'id '+tok.id;b.append(s,sm);
+  b.addEventListener('click',()=>selectTok(tok.idx,true));chipsEl.appendChild(b);tok.chip=b;$('#tokCount').textContent='· '+tokens.length;}
+function selectTok(i,light){selected=i;tokens.forEach(t=>t.chip&&t.chip.setAttribute('aria-pressed',t.idx===i?'true':'false'));trunkSel.fill(0);if(i>=0)trunkSel[i%MAXTOK]=1;
+  $('#embTok').textContent=i>=0?(tokens[i].masked?'masked token':'"'+visTok(tokens[i].text)+'"'):'—';drawEmb();drawFP();
+  if(i>=0&&light){const tok=tokens[i];for(let l=0;l<L;l+=1){for(const e of tok.routes[l])act[l*E+e]=Math.max(act[l*E+e],.9);}}}
+
+function cssv(n){return getComputedStyle(root).getPropertyValue(n).trim();}
+function fitCanvas(c){if(!c.dataset.h)c.dataset.h=c.getAttribute('height');const cssH=parseFloat(c.dataset.h);c.style.height=cssH+'px';const d=Math.min(2,window.devicePixelRatio||1);const w=Math.max(10,Math.round((c.clientWidth||c.getBoundingClientRect().width)*d)),h=Math.round(cssH*d);if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return d;}
+function drawEmb(){const c=$('#emb');const d=fitCanvas(c);const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+  if(selected<0||!tokens[selected]){x.fillStyle=cssv('--muted');x.font=(11*d)+'px '+cssv('--f-data');x.fillText('Select a token',8*d,c.height/2+4*d);return;}const tok=tokens[selected];const r=mulberry(hashStr(tok.key)^0x5bd1e995);const n=256,bw=c.width/n,mid=c.height/2;
+  for(let k=0;k<n;k++){const v=((r()+r()+r()+r())-2)*1.1;x.fillStyle=v>0?cssv('--signal'):cssv('--assoc');x.globalAlpha=0.35+Math.min(.65,Math.abs(v));x.fillRect(k*bw,mid,Math.max(1,bw-0.5*d),-v*mid*0.9);}
+  x.globalAlpha=1;x.fillStyle=cssv('--rule');x.fillRect(0,mid,c.width,1);}
+function drawFP(){const c=$('#fp');const d=fitCanvas(c);const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+  const cw=c.width/L;x.fillStyle=cssv('--assoc');x.globalAlpha=.25;for(let l=0;l<L;l++)if(isFull(l))x.fillRect(l*cw+cw/2-.5*d,0,1*d,c.height);x.globalAlpha=1;
+  if(selected<0||!tokens[selected]){x.fillStyle=cssv('--muted');x.font=(11*d)+'px '+cssv('--f-data');x.fillText('Select a token',8*d,c.height/2);return;}
+  const tok=tokens[selected];x.fillStyle=cssv('--signal');
+  for(let l=0;l<L;l++)for(const e of tok.routes[l]){const th=theta[l*E+e];const yy=th/TAU*(c.height-6*d)+3*d;x.beginPath();x.arc(l*cw+cw/2,yy,1.4*d,0,TAU);x.fill();}
+  x.fillStyle=cssv('--shared');for(let l=0;l<L;l++)x.fillRect(l*cw+cw/2-d,c.height-2*d,2*d,2*d);}
+
+const respEl=$('#resp'),candsEl=$('#cands');
+function setPhase(name,sub,stepKey){$('#phase').textContent=name;$('#phaseSub').textContent=sub;
+  document.querySelectorAll('.step').forEach(s=>s.classList.toggle('on',s.dataset.p===stepKey));}
+function setStepBar(key,frac){const s=document.querySelector('.step[data-p="'+key+'"] .bar');if(s)s.style.width=(Math.max(0,Math.min(1,frac))*100).toFixed(1)+'%';}
+function clearBars(){document.querySelectorAll('.step .bar').forEach(b=>b.style.width='0');}
+let flops=0;function addFlops(n){flops+=n*190;$('#rFlop').textContent=(flops>=1000?(flops/1000).toFixed(2)+' PFLOP':flops.toFixed(0)+' GFLOP');}
+function showCands(word,masked,seed,isEOS){
+  const r=mulberry(seed);const pw=0.38+r()*0.55;lastWinP=pw;const alts=[];const pool=FILLER.slice();
+  while(alts.length<3){const w=pool.splice(Math.floor(r()*pool.length),1)[0];if(w.trim()!==word.trim())alts.push(w);}
+  let rem=1-pw;const ps=alts.map((_,k)=>{const v=rem*(0.45+r()*0.25);rem-=v;return v;});
+  const rows=[[isEOS?'<|im_end|>':word,pw,true],...alts.map((w,k)=>[w,ps[k],false])];
+  candsEl.innerHTML='';rows.forEach(([w,p,win])=>{const d=document.createElement('div');d.className='cand'+(win?' win':'');
+    const a=document.createElement('span');a.textContent=masked&&!isEOS?'▮▮▮':visTok(w);const bar=document.createElement('i');bar.style.setProperty('--p',(p*100).toFixed(1)+'%');
+    const em=document.createElement('em');em.textContent=(p*100).toFixed(0)+'%';d.append(a,bar,em);candsEl.appendChild(d);});
+  const f=document.createElement('div');f.className='note';f.textContent=masked?'Shape only. No model runs on this page, so replies to your own prompts remain masked.':'Illustrative probabilities. 248,320 candidates scored.';candsEl.appendChild(f);
+}
+let respText='';
+function hexSwatch(){const m=respText.match(/#([0-9A-Fa-f]{6})$/);if(m){const sw=document.createElement('span');sw.className='sw';sw.style.background='#'+m[1];sw.title='#'+m[1];respEl.appendChild(sw);}}
+function appendResp(text,masked){respEl.querySelectorAll('.latest').forEach(n=>n.classList.remove('latest'));if(!masked&&text==='\n')hexSwatch();respText+=masked?'':text;
+  if(masked){if(text.startsWith(' '))respEl.appendChild(document.createTextNode(' '));const m=document.createElement('span');m.className='mask latest';respEl.appendChild(m);}
+  else{const s=document.createElement('span');s.className='latest';s.textContent=text;respEl.appendChild(s);}
+  respEl.scrollTop=respEl.scrollHeight;}
+
+
+/* ---------- exposure sheet view ---------- */
+const sheet=$('#sheet');const sctx=sheet.getContext('2d');
+const cellFire=new Float32Array(MAXTOK*L);const arcs=[];let lastWinP=0;
+let view='specimen',sheetScroll=0,sheetUser=false,sheetUserT=0,sheetGeom=null,SC={};
+function sheetColors(){const g=n=>cssv(n);SC={plate:g('--plate'),panel:g('--panel'),ink:g('--ink'),muted:g('--muted'),rule:g('--rule'),signal:g('--signal'),assoc:g('--assoc'),tissue:g('--tissue'),font:g('--f-data'),dark:parseFloat(g('--is-dark'))===1};}
+function setView(v){view=v;sheet.hidden=v!=='sheet';wrap.classList.toggle('sheet-mode',v==='sheet');
+  $('#viewSpec').setAttribute('aria-pressed',v==='specimen');$('#viewSheet').setAttribute('aria-pressed',v==='sheet');
+  try{localStorage.setItem('n92-view',v);}catch(e){}}
+$('#viewSpec').addEventListener('click',()=>setView('specimen'));
+$('#viewSheet').addEventListener('click',()=>setView('sheet'));
+sheet.addEventListener('wheel',e=>{if(!sheetGeom||tokens.length<=sheetGeom.vis)return;e.preventDefault();sheetScroll+=e.deltaY/sheetGeom.rh*0.6;sheetUser=true;sheetUserT=performance.now();},{passive:false});
+let sTouchY=null;
+sheet.addEventListener('touchstart',e=>{sTouchY=e.touches[0].clientY;},{passive:true});
+sheet.addEventListener('touchmove',e=>{if(sTouchY===null||!sheetGeom||tokens.length<=sheetGeom.vis)return;const y=e.touches[0].clientY;sheetScroll+=(sTouchY-y)/sheetGeom.rh;sTouchY=y;sheetUser=true;sheetUserT=performance.now();},{passive:true});
+sheet.addEventListener('click',e=>{if(!sheetGeom)return;const r=sheet.getBoundingClientRect();const y=e.clientY-r.top;if(y<sheetGeom.rowsTop)return;
+  const row=Math.floor((y-sheetGeom.rowsTop+sheetGeom.off)/sheetGeom.rh)+sheetGeom.first;if(row>=0&&row<tokens.length)selectTok(row,true);});
+function trunc(x,t,w){if(x.measureText(t).width<=w)return t;while(t.length>1&&x.measureText(t+'…').width>w)t=t.slice(0,-1);return t+'…';}
+function drawSheet(){
+  const d=Math.min(2,window.devicePixelRatio||1);const W=wrap.clientWidth,H=wrap.clientHeight;if(!W||!H)return;
+  if(sheet.width!==Math.round(W*d)||sheet.height!==Math.round(H*d)){sheet.width=Math.round(W*d);sheet.height=Math.round(H*d);}
+  const x=sctx;x.setTransform(d,0,0,d,0,0);
+  x.fillStyle=SC.plate;x.fillRect(0,0,W,H);
+  const narrow=W<560;const left=14,right=14;
+  const fw=narrow?26:38,dw=narrow?64:128,cw2=narrow?42:84;
+  const lx=left+fw+dw,lw=W-left-right-fw-dw-cw2,cw=lw/L;
+  const rh=narrow?18:21,headTop=narrow?52:56,rowsTop=headTop+40,vis=Math.max(1,Math.floor((H-rowsTop-10)/rh));
+  const n=tokens.length;
+  if(sheetUser&&performance.now()-sheetUserT>5000)sheetUser=false;
+  const cur=n-1;
+  if(!sheetUser){const target=Math.max(0,cur-Math.floor(vis*0.72));sheetScroll+=(target-sheetScroll)*0.12;}
+  sheetScroll=Math.max(0,Math.min(Math.max(0,n-vis+1),sheetScroll));
+  const first=Math.floor(sheetScroll),off=(sheetScroll-first)*rh;
+  sheetGeom={rowsTop,rh,first,off,vis};
+  // header
+  x.textBaseline='middle';
+  x.font='500 '+(narrow?8:9.5)+'px '+SC.font;x.fillStyle=SC.muted;
+  x.fillText('FR',left,headTop+26);x.fillText('DIAL.',left+fw+6,headTop+26);
+  x.fillText(narrow?'LEVELS · LAYERS 1–92':'LEVELS  ·  LAYERS 1–92, COMPOSITED LEFT TO RIGHT',lx,headTop+6);
+  x.textAlign='right';x.fillText('CAM.',W-right,headTop+26);x.textAlign='left';
+  for(let l=0;l<L;l++){const cx=lx+(l+.5)*cw;
+    if(isFull(l)){x.fillStyle=SC.assoc;x.beginPath();x.arc(cx,headTop+31,narrow?1.3:1.8,0,TAU);x.fill();}
+    if(!narrow&&(l+1)%8===0){x.fillStyle=SC.muted;x.textAlign='center';x.fillText(String(l+1),cx,headTop+20);x.textAlign='left';}}
+  x.fillStyle=SC.ink;x.fillRect(left,rowsTop-1.5,W-left-right,1.5);
+  x.fillStyle=SC.rule;x.fillRect(lx-0.5,headTop+14,1,H-headTop-14);x.fillRect(lx+lw+0.5,headTop+14,1,H-headTop-14);x.fillRect(left+fw-0.5,headTop+14,1,H-headTop-14);
+  x.save();x.beginPath();x.rect(0,rowsTop,W,H-rowsTop);x.clip();
+  // full-attention column tint
+  x.fillStyle=SC.assoc;x.globalAlpha=SC.dark?.07:.06;for(let l=3;l<L;l+=4)x.fillRect(lx+l*cw,rowsTop,cw,H-rowsTop);x.globalAlpha=1;
+  if(n===0){x.fillStyle=SC.muted;x.font='italic 15px '+cssv('--f-display');x.textAlign='center';x.fillText('Choose a prompt to fill the sheet.',W/2,rowsTop+60);x.textAlign='left';x.restore();return;}
+  const last=Math.min(n,first+vis+2);
+  const rowY=r=>rowsTop+(r-first)*rh-off;
+  for(let r=first;r<last;r++){
+    const y=rowY(r),tok=tokens[r],lv=trunkLevel[r%MAXTOK];
+    if(!tok.isPrompt){x.fillStyle=SC.panel;x.fillRect(left,y,W-left-right,rh);}
+    if(r===selected){x.fillStyle=SC.signal;x.globalAlpha=.09;x.fillRect(left,y,W-left-right,rh);x.globalAlpha=1;}
+    // frame number + footage marks (16 frames = one foot of 35mm)
+    const fr=r+1;x.font=(fr%16===0?'600 ':'400 ')+(narrow?8.5:10)+'px '+SC.font;x.fillStyle=fr%16===0?SC.ink:SC.muted;x.textAlign='right';
+    x.fillText(fr%16===0&&!narrow?(fr/16)+'ft '+fr:String(fr),left+fw-5,y+rh/2+.5);x.textAlign='left';
+    // dialogue
+    const latest=(!tok.isPrompt&&r===n-1&&run&&run.phase!=='done');
+    x.font=(narrow?9.5:11.5)+'px '+SC.font;x.fillStyle=latest?SC.signal:(tok.isPrompt?SC.ink:SC.ink);
+    const t=tok.masked?'▮▮▮':visTok(tok.text);x.fillText(trunc(x,t,dw-12),left+fw+6,y+rh/2+.5);
+    // cells
+    const base=(r%MAXTOK)*L;
+    x.fillStyle=SC.tissue;x.globalAlpha=SC.dark?.38:.16;
+    for(let l=0;l<L&&l<=lv;l++)x.fillRect(lx+l*cw+.5,y+2,cw-1,rh-4);
+    x.fillStyle=SC.signal;
+    for(let l=0;l<L&&l<=lv;l++){const f=cellFire[base+l];if(f>.02){x.globalAlpha=Math.min(1,f*.95);x.fillRect(lx+l*cw+.5,y+2,cw-1,rh-4);}}
+    if(cw>=4){x.fillStyle=SC.ink;x.globalAlpha=r===selected?.8:(SC.dark?.3:.26);
+      for(let l=0;l<L&&l<=lv;l++){const rt=tok.routes[l];for(let k=0;k<rt.length;k++){const ty=y+3+theta[l*E+rt[k]]/TAU*(rh-6);x.fillRect(lx+l*cw+cw*.22,ty,cw*.56,1);}}}
+    x.globalAlpha=1;
+    // camera column
+    if(!tok.isPrompt&&tok.p){const bw=(cw2-(narrow?18:34))*tok.p;x.fillStyle=SC.signal;x.globalAlpha=.85;x.fillRect(W-right-cw2+4,y+rh/2-2,bw,4);x.globalAlpha=1;
+      if(!narrow){x.fillStyle=SC.muted;x.font='10px '+SC.font;x.textAlign='right';x.fillText(Math.round(tok.p*100)+'%',W-right,y+rh/2+.5);x.textAlign='left';}}
+    else if(tok.isPrompt){x.fillStyle=SC.muted;x.font=(narrow?8:9.5)+'px '+SC.font;x.textAlign='right';x.fillText('in',W-right,y+rh/2+.5);x.textAlign='left';}
+    // ruling: light every frame, heavier every 8, heaviest every 16
+    const hw=fr%16===0?1.6:(fr%8===0?1:.5);x.fillStyle=fr%16===0?SC.ink:SC.rule;x.globalAlpha=fr%16===0?.6:1;x.fillRect(left,y+rh-hw/2,W-left-right,hw);x.globalAlpha=1;
+  }
+  // onion-skin arcs (full attention reaching back to earlier frames)
+  x.lineWidth=1;x.strokeStyle=SC.assoc;
+  for(const a of arcs){if(a.i>=last+2||a.i<first-30)continue;
+    const yi=rowY(a.i)+rh/2,yj=rowY(a.j)+rh/2,cx=lx+(a.l+.5)*cw,bow=Math.min(70,8+(a.i-a.j)*2.2);
+    x.globalAlpha=a.a*.85;x.beginPath();x.moveTo(cx,yi);x.quadraticCurveTo(cx+bow,(yi+yj)/2,cx,yj);x.stroke();
+    if(a.j>=first&&a.j<last){x.globalAlpha=a.a*.18;x.fillStyle=SC.assoc;x.fillRect(left+fw,yj,dw,rh);}}
+  x.globalAlpha=1;
+  // playhead
+  if(run&&(run.phase==='prefill'||run.phase==='decode')){
+    const cl=Math.min(L-1,run.cursor),px=lx+cl*cw;
+    if(run.phase==='prefill'){const y0=rowY(0),y1=rowY(n-1)+rh;x.fillStyle=SC.signal;x.globalAlpha=.12;x.fillRect(px-cw*2,Math.max(rowsTop,y0),cw*2,y1-Math.max(rowsTop,y0));x.globalAlpha=1;x.fillRect(px,Math.max(rowsTop,y0),1.5,y1-Math.max(rowsTop,y0));}
+    else{const y=rowY(n-1);x.strokeStyle=SC.signal;x.lineWidth=1.5;x.strokeRect(lx+Math.floor(cl)*cw-.5,y+.5,cw+1,rh-1);}
+  }
+  x.restore();
+  // scroll indicator
+  if(n>vis){const th=Math.max(20,(H-rowsTop)*vis/n),ty=rowsTop+(H-rowsTop-th)*(sheetScroll/Math.max(1,n-vis+1));x.fillStyle=SC.muted;x.globalAlpha=.35;x.fillRect(W-4,ty,2,th);x.globalAlpha=1;}
+}
+
+/* ---------- run state machine ---------- */
+let run=null;
+function resetScene(){cellFire.fill(0);arcs.length=0;sheetScroll=0;sheetUser=false;tokens=[];selected=-1;trunkOn.fill(0);trunkLevel.fill(-2);trunkSel.fill(0);dA.fill(0);dDirty=true;sT.fill(2);chipsEl.innerHTML='';respEl.textContent='';respText='';candsEl.innerHTML='';flops=0;addFlops(0);clearBars();$('#tokCount').textContent='';drawEmb();drawFP();}
+function start(presetIdx,custom){
+  resetScene();parAuto=true;
+  presetsEl.querySelectorAll('.preset').forEach((b,i)=>b.setAttribute('aria-current',i===presetIdx?'true':'false'));
+  const text=presetIdx>=0?PRESETS[presetIdx].p:custom;
+  const ptoks=tokenize(text).slice(0,48);
+  let rtoks,masked=false;
+  if(presetIdx>=0)rtoks=tokenize(PRESETS[presetIdx].r);
+  else{masked=true;const r=mulberry(hashStr(text));const n=18+Math.floor(r()*14);rtoks=[];for(let k=0;k<n;k++)rtoks.push(r()<0.12?',':' '+String.fromCharCode(97+Math.floor(r()*26)).repeat(2+Math.floor(r()*5)));}
+  rtoks=rtoks.slice(0,MAXTOK-ptoks.length-1);
+  run={phase:'tokenize',t:0,ptoks,rtoks,masked,shown:0,cursor:-1,k:0,lastL:-1};setPaused(false);syncCtl();
+  setPhase('Tokenising','The prompt is cut into pieces drawn from a vocabulary of 248,320 tokens.','tokenize');autoPar('tokenize');
+}
+function prefillVisualSet(n){const s=new Set();const m=Math.min(n,7);for(let k=0;k<m;k++)s.add(Math.floor((k+.5)/m*n));s.add(n-1);return s;}
+
+function step(dt){
+  if(!run){ // resting: spontaneous activity
+    const n=Math.floor(dt*60+Math.random());for(let k=0;k<n;k++){const i=Math.floor(Math.random()*NE);act[i]=Math.max(act[i],.35+Math.random()*.4);}
+    return;}
+  const R=run;R.t+=dt;
+  if(R.phase==='tokenize'){
+    const per=0.11;while(R.shown<R.ptoks.length&&R.t>R.shown*per){const tok=makeToken(R.ptoks[R.shown],true);addChip(tok);R.shown++;}
+    setStepBar('tokenize',R.shown/R.ptoks.length);
+    if(R.shown>=R.ptoks.length&&R.t>R.shown*per+0.4){R.phase='embed';R.t=0;selectTok(tokens.length-1);setPhase('Embedding','Each token becomes a vector of 8,192 numbers at the base of its thread.','embed');autoPar('embed');}
+  }else if(R.phase==='embed'){
+    const f=Math.min(1,R.t/1.1);setStepBar('embed',f);
+    tokens.forEach(t=>{trunkLevel[t.idx%MAXTOK]=-1+f*0.6;});
+    if(f>=1){R.phase='prefill';R.t=0;R.cursor=0;R.lastL=-1;R.vis=prefillVisualSet(tokens.length);addFlops(tokens.length);
+      setPhase('Reading the prompt','Every token of the prompt rises through the 92 layers at once.','prefill');autoPar('experts');}
+  }else if(R.phase==='prefill'){
+    R.cursor+=dt*(L/6.5);const cl=Math.min(L-1,Math.floor(R.cursor));
+    for(let l=R.lastL+1;l<=cl;l++){tokens.forEach(t=>fireLayer(t.idx,l,R.vis.has(t.idx),0.32));R.lastL=l;}
+    tokens.forEach(t=>{trunkLevel[t.idx%MAXTOK]=R.cursor;});
+    setStepBar('prefill',R.cursor/L);
+    if(R.cursor>L*0.5)autoPar('memory');
+    if(R.cursor>=L){R.phase='sample';R.t=0;R.k=0;beginSample();}
+  }else if(R.phase==='decode'){
+    const ascent=R.k<2?2.6:(R.k<5?1.2:0.62);
+    R.cursor+=dt*(L/ascent);const cl=Math.min(L-1,Math.floor(R.cursor));const ti=tokens.length-1;
+    for(let l=R.lastL+1;l<=cl;l++){fireLayer(ti,l,true,Math.min(.3,ascent*0.12));R.lastL=l;}
+    trunkLevel[ti%MAXTOK]=R.cursor;
+    setStepBar('decode',(R.k+R.cursor/L)/(R.rtoks.length+1));
+    if(R.cursor>=L){R.phase='sample';R.t=0;R.k++;beginSample();}
+  }else if(R.phase==='sample'){
+    const hold=R.k<3?1.3:0.32;setStepBar('sample',R.t/hold);
+    if(R.t>=hold){
+      if(R.k>=R.rtoks.length){if(!R.masked)hexSwatch();R.phase='done';syncCtl();setPhase('Finished','The model has emitted its end-of-turn token. Select any token to see the route it took.','');autoPar('sample');return;}
+      const text=R.rtoks[R.k];appendResp(text,R.masked);
+      const tok=makeToken(text,false);tok.masked=R.masked;tok.p=lastWinP;addChip(tok);selectTok(tok.idx);
+      R.phase='decode';R.t=0;R.cursor=0;R.lastL=-1;addFlops(1);
+      setPhase('Generating','Token '+(R.k+1)+' of the reply climbs all 92 layers. The full-attention layers reach back to earlier tokens.','decode');
+      if(R.k<2)autoPar('attention');else if(R.k===2)autoPar('experts');
+    }
+  }
+}
+function beginSample(){const R=run;const isEOS=R.k>=R.rtoks.length;const w=isEOS?'':R.rtoks[R.k];
+  showCands(w,R.masked,hashStr((w||'eos')+R.k),isEOS);setPhase('Choosing','The top layer scores every token in the vocabulary, and one is sampled.','sample');autoPar('sample');
+  const tp=trunkPt(tokens.length-1,L);for(let k=0;k<14;k++){const a=k/14*TAU;const ep=[tp[0]+Math.cos(a)*1.4,tp[1]+0.9,tp[2]+Math.sin(a)*1.4];spawnSpark(tp,[(tp[0]+ep[0])/2,tp[1]+1.1,(tp[2]+ep[2])/2],ep,0.5,-1,1);}}
+
+/* ---------- HUD flags ---------- */
+const flagIn=$('#flagIn'),flagOut=$('#flagOut'),flagCur=$('#flagCur');
+const v3=new THREE.Vector3();
+function place(el,x,y,z){v3.set(x,y,z).project(camera);const w=wrap.clientWidth,h=wrap.clientHeight;el.style.left=((v3.x*.5+.5)*w)+'px';el.style.top=((-v3.y*.5+.5)*h)+'px';el.style.opacity=(v3.z<1)?1:0;}
+let lastHudL=-2;
+function hud(){
+  place(flagIn,0,yOf(0)-1.5,0);place(flagOut,0,yOf(L-1)+1.5,0);
+  const cur=run&&(run.phase==='prefill'||run.phase==='decode')?Math.min(L-1,Math.floor(run.cursor)):-1;
+  if(cur>=0){flagCur.hidden=false;const R=Rl(cur);place(flagCur,R*1.02*Math.sin(cam.az+Math.PI/2),yOf(cur),R*1.02*Math.cos(cam.az+Math.PI/2));
+    if(cur!==lastHudL){flagCur.textContent='L'+(cur+1)+' · '+(isFull(cur)?'full attention':'linear');$('#rLayer').textContent=(cur+1)+' / 92';$('#rType').textContent=isFull(cur)?'Full attn · 64 heads':'Gated DeltaNet';lastHudL=cur;}}
+  else{flagCur.hidden=true;if(lastHudL!==-1){$('#rLayer').textContent='— / 92';$('#rType').textContent='—';lastHudL=-1;}}
+}
+
+/* ---------- frame loop ---------- */
+let last=performance.now();
+function frame(now){
+  let dt=Math.min(0.05,(now-last)/1000);last=now;
+  const sdt=paused?0:dt*speed*(reduceMotion?0.6:1);
+  if(!paused)step(sdt);
+  // decay
+  const kExp=Math.exp(-sdt*1.9),kDyn=Math.exp(-sdt*1.5),kRing=Math.exp(-sdt*2.5);
+  if(sdt>0){for(let i=0;i<NP;i++)act[i]*=kExp;for(let i=0;i<NSEG*2;i++)dA[i]*=kDyn;for(let l=0;l<L;l++)ringAct[l]*=kRing;}
+  actAttr.needsUpdate=true;dAAttr.needsUpdate=true;if(dDirty){dPosAttr.needsUpdate=true;dMAttr.needsUpdate=true;dDirty=false;}
+  // sparks
+  for(let i=0;i<NSPK;i++){
+    if(sT[i]>1.0){sAct[i]=0;sPos[i*3+1]=-999;continue;}
+    sT[i]+=sdt*sSpd[i];const t=Math.min(1,sT[i]);const o=i*9;
+    const q=bez([sP[o],sP[o+1],sP[o+2]],[sP[o+3],sP[o+4],sP[o+5]],[sP[o+6],sP[o+7],sP[o+8]],t);
+    sPos[i*3]=q[0];sPos[i*3+1]=q[1];sPos[i*3+2]=q[2];sAct[i]=0.6+0.4*Math.sin(t*Math.PI);
+    if(sT[i]>=1){if(sTgt[i]>=0)act[sTgt[i]]=1;sT[i]=2;}
+  }
+  sPosAttr.needsUpdate=true;sActAttr.needsUpdate=true;sKindAttr.needsUpdate=true;
+  // trunks
+  for(let i=0;i<MAXTOK;i++){const on=trunkOn[i],lv=trunkLevel[i],sel=trunkSel[i];
+    for(let s=0;s<TSEG;s++){const o=(i*TSEG+s)*2;let a=0;
+      if(on){const segL=s-1;if(segL<=lv){const head=Math.max(0,1-(lv-segL)/6);a=(sel?.75:.32)+head*.6;}else if(segL<=lv+1){a=.2*(1-(segL-lv));}}
+      tA[o]=tA[o+1]=a;tM[o]=tM[o+1]=0;}}
+  tAAttr.needsUpdate=true;
+  // rings
+  for(let l=0;l<L;l++){const a=(isFull(l)?.16:.07)+ringAct[l]*.8;for(let s=0;s<RS*2;s++)rA[l*RS*2+s]=a;}
+  rAAttr.needsUpdate=true;
+  // camera
+  if(!cam.drag&&!reduceMotion){cam.az+=dt*0.07;}
+  const base=cam.base||34;const z=cam.zoom||1;
+  let ty=0,dist=base*z;
+  if(follow&&run&&(run.phase==='prefill'||run.phase==='decode'||run.phase==='sample')){const c=run.phase==='sample'?L-1:Math.min(L-1,run.cursor);ty=yOf(c)*0.75;dist=base*0.7*z;}
+  cam.ty+=(ty-cam.ty)*Math.min(1,dt*2.2);cam.dist+=(dist-cam.dist)*Math.min(1,dt*1.6);
+  camera.position.set(Math.sin(cam.az)*Math.cos(cam.el)*cam.dist,cam.ty+Math.sin(cam.el)*cam.dist,Math.cos(cam.az)*Math.cos(cam.el)*cam.dist);
+  camera.lookAt(0,cam.ty,0);
+  if(sdt>0){const kc=Math.exp(-sdt*2.4);for(let i=0;i<cellFire.length;i++)cellFire[i]*=kc;const ka=Math.exp(-sdt*1.1);for(let i=arcs.length-1;i>=0;i--){arcs[i].a*=ka;if(arcs[i].a<.03)arcs.splice(i,1);}}
+  if(view==='sheet'){drawSheet();}else{renderer.render(scene,camera);hud();}
+  requestAnimationFrame(frame);
+}
+resize();themeColors();
+try{if(localStorage.getItem('n92-view')==='sheet')setView('sheet');}catch(e){}
+requestAnimationFrame(frame);
+setTimeout(()=>start(0),reduceMotion?1500:900);
+})();
+</script>
