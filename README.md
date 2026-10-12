@@ -55,7 +55,7 @@ Choose one of the sample prompts or write your own. Space pauses and resumes, Es
 
 ## Credits
 
-Built with [three.js](https://threejs.org/) (MIT licence). Fonts: Bodoni Moda, Instrument Sans, JetBrains Mono, Gelasio and Courier Prime, all under the SIL Open Font Licence. Developed in conversation with Claude, which was used as a coding and research assistant.
+Built with [three.js](https://threejs.org/) (MIT licence). Fonts: Bodoni Moda, Instrument Sans, JetBrains Mono, Gelasio and Courier Prime, all under the SIL Open Font Licence. Developed with coding assistance from Claude.
 
 Key references: Lindsey et al. (2025), *On the Biology of a Large Language Model*; Bender et al. (2021), *On the Dangers of Stochastic Parrots*; Lennie (2003), *The Cost of Cortical Computation*; Thomas and Johnston (1981), *The Illusion of Life*. A full source list is on the page itself.
 
